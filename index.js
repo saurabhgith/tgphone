@@ -21,7 +21,61 @@ fastify.register(fastifyFormBody);
 fastify.register(fastifyWs);
 
 // Constants
-const SYSTEM_MESSAGE = 'You are a helpful and bubbly AI assistant who loves to chat about anything the user is interested about and is prepared to offer them facts. You have a penchant for dad jokes, owl jokes, and rickrolling – subtly. Always stay positive, but work in a joke when appropriate.';
+const PAST_PERFORMANCE = "TGAIC has rolled out 100+ agents for mid-sized companies in healthcare and legal services. ";
+
+const TGAIC_AGENTS = [
+    {
+        name: "Nancy",
+        industry: "Healthcare",
+        function: "Hiring",
+        value: "Increases your offer acceptance rates and allows you to increase the pool of available candidates to select from."
+    },
+    {
+        name: "Mark",
+        industry: "Healthcare",
+        function: "Patient/Caregiver Matching ",
+        value: "Increases caregiver and patient satisfaction by matching them with qualitative parameters."
+    },
+    {
+        name: "Betty",
+        industry: "Healthcare",
+        function: "Measure Attrition Risk",
+        value: "Measures attrition risk for employees based on operational data. Allows you to intervene and reduce employee turnover."
+    },
+    {
+        name: "Bob",
+        industry: "Healthcare",
+        function: "Employee Support",
+        value: "Guides your homecare employees with policy and process directives."
+    },
+    {
+        name: "Debbie",
+        industry: "Healthcare",
+        function: "Employee Support",
+        value: "Provides latest policy and compliance information on Georgia DBHDD to your behavioral health system employees."
+    }    
+];
+
+const AGENT_DESIGN_APPROACH = "Understand from the client, what are the most people dependent or high risk parts of their workflow. Create a list of such opportunities that can be solved with Gen AI agents. Then work with users to prioritize these opportunities based on impact.";
+
+const SYSTEM_MESSAGE = `You are an expert sales consultant for The Generative AI Company, LLC (TGAIC). 
+
+Past Performance: ${PAST_PERFORMANCE}
+
+Our Agents:
+${TGAIC_AGENTS.map(agent => `- ${agent.name}: ${agent.function} for ${agent.industry} - ${agent.value}`).join('\n')}
+
+Our Agent Design Approach: ${AGENT_DESIGN_APPROACH}
+
+Your primary responsibilities:
+- Understand the visitor's role and organization type
+- Identify their operational challenges
+- Explain how TGAIC can help solve their problems
+- Do NOT discuss any pricing information
+- When the caller shows interest, collect their name and phone and raise the interest.show event.
+
+Keep responses professional, engaging, and focused on understanding and solving their operational challenges.`;
+
 const VOICE = 'alloy';
 const PORT = process.env.PORT || 5050; // Allow dynamic port assignment
 
@@ -40,6 +94,23 @@ const LOG_EVENT_TYPES = [
 // Show AI response elapsed timing calculations
 const SHOW_TIMING_MATH = false;
 
+// Function to submit data to Retool
+async function submitToRetool(customerName, phone, conversationHistory) {
+    const response = await fetch('https://api.retool.com/v1/workflows/7910a14b-77aa-437a-a02b-7785cb8ac76b/startTrigger', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Workflow-Api-Key': process.env.RETOOL_WORKFLOW_KEY || '' // Ensure the key is taken from environment variables
+        },
+        body: JSON.stringify({
+            name: customerName,
+            phone: phone,
+            conversation_history: conversationHistory
+        })
+    });
+    return response.ok;
+}
+
 // Root Route
 fastify.get('/', async (request, reply) => {
     reply.send({ message: 'Twilio Media Stream Server is running!' });
@@ -50,9 +121,9 @@ fastify.get('/', async (request, reply) => {
 fastify.all('/incoming-call', async (request, reply) => {
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
                           <Response>
-                              <Say>Please wait while we connect your call to the A. I. voice assistant, powered by Twilio and the Open-A.I. Realtime API</Say>
+                              <Say>Welcome to The Generative AI Company. I am a virtual customer advisor.</Say>
                               <Pause length="1"/>
-                              <Say>O.K. you can start talking!</Say>
+                              <Say>How can I help you today?</Say>
                               <Connect>
                                   <Stream url="wss://${request.headers.host}/media-stream" />
                               </Connect>
@@ -204,6 +275,22 @@ fastify.register(async (fastify) => {
                 if (response.type === 'input_audio_buffer.speech_started') {
                     handleSpeechStartedEvent();
                 }
+
+                if (response.type === 'interest.shown') { // Assuming this is the event type for showing interest
+                    const customerName = response.customerName; // Extract name from the response
+                    const phone = response.phone; // Extract phone from the response
+                    const conversationHistory = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+
+                    // Submit to Retool
+                    submitToRetool(customerName, phone, conversationHistory)
+                        .then(success => {
+                            if (success) {
+                                console.log('Successfully submitted to Retool');
+                            } else {
+                                console.error('Failed to submit to Retool');
+                            }
+                        });
+                }
             } catch (error) {
                 console.error('Error processing OpenAI message:', error, 'Raw message:', data);
             }
@@ -265,7 +352,7 @@ fastify.register(async (fastify) => {
     });
 });
 
-fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
+fastify.listen({ port: PORT }, (err) => {
     if (err) {
         console.error(err);
         process.exit(1);
