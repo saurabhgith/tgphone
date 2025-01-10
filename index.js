@@ -167,6 +167,7 @@ fastify.register(async (fastify) => {
                     tools: [
                         {
                             name: 'submitToRetool',
+                            type: 'function',
                             description: 'Submits customer data to Retool for processing.',
                             parameters: {
                                 type: 'object',
@@ -180,6 +181,7 @@ fastify.register(async (fastify) => {
                         },
                         {
                             name: 'callForwarding',
+                            type: 'function',
                             description: 'Forwards the call to a specific person based on the caller’s request.',
                             parameters: {
                                 type: 'object',
