@@ -178,7 +178,7 @@ fastify.register(async (fastify) => {
                                     conversationHistory: { type: 'string' }
                                 },
                                 required: ['customerName', 'phone', 'conversationHistory'],
-                                additionalProperties: false
+                                additionalProperties: False
                             }
                         },
                         {
@@ -191,7 +191,7 @@ fastify.register(async (fastify) => {
                                     name: { type: 'string' }
                                 },
                                 required: ['name'],
-                                additionalProperties: false
+                                additionalProperties: False
                             }
                         }
                     ]
@@ -308,36 +308,43 @@ fastify.register(async (fastify) => {
                     handleSpeechStartedEvent();
                 }
 
-                if (response.type === 'interest.shown') { // Assuming this is the event type for showing interest
-                    const customerName = response.customerName; // Extract name from the response
-                    const phone = response.phone; // Extract phone from the response
-                    const conversationHistory = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+                // Capture text information and invoke functions based on the response
+                if (response.type === 'text') { // Assuming 'text' is the type for capturing text
+                    const textContent = response.content; // Extract text content
+                    console.log('Captured text:', textContent);
 
-                    // Submit to Retool
-                    submitToRetool(customerName, phone, conversationHistory)
-                        .then(success => {
-                            if (success) {
-                                console.log('Successfully submitted to Retool');
-                            } else {
-                                console.error('Failed to submit to Retool');
-                            }
-                        });
-                }
+                    // Check for interest shown and invoke the function
+                    if (response.type === 'interest.shown') {
+                        const customerName = response.customerName; // Extract name from the response
+                        const phone = response.phone; // Extract phone from the response
+                        const conversationHistory = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
 
-                // Check for call forwarding request
-                if (response.type === 'call.forward') {
-                    const name = response.name; // Extract name from the response
-                    const forwardingNumbers = {
-                        'Saurabh': '7063043893',
-                        'Rakesh': '6785221190'
-                    };
+                        // Submit to Retool
+                        submitToRetool(customerName, phone, conversationHistory)
+                            .then(success => {
+                                if (success) {
+                                    console.log('Successfully submitted to Retool');
+                                } else {
+                                    console.error('Failed to submit to Retool');
+                                }
+                            });
+                    }
 
-                    if (forwardingNumbers[name]) {
-                        const callForwardingResponse = {
-                            type: 'tool.callForwarding',
-                            name: name
+                    // Check for call forwarding request
+                    if (response.type === 'call.forward') {
+                        const name = response.name; // Extract name from the response
+                        const forwardingNumbers = {
+                            'Saurabh': '7063043893',
+                            'Rakesh': '6785221190'
                         };
-                        openAiWs.send(JSON.stringify(callForwardingResponse)); // Invoke the call forwarding tool
+
+                        if (forwardingNumbers[name]) {
+                            const callForwardingResponse = {
+                                type: 'tool.callForwarding',
+                                name: name
+                            };
+                            openAiWs.send(JSON.stringify(callForwardingResponse)); // Invoke the call forwarding tool
+                        }
                     }
                 }
             } catch (error) {
