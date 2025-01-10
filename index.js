@@ -177,7 +177,7 @@ fastify.register(async (fastify) => {
                                     conversationHistory: { type: 'string' }
                                 },
                                 required: ['customerName', 'phone', 'conversationHistory'],
-                                additionalProperties: False
+                                additionalProperties: false
                             }
                         },
                         {
@@ -190,7 +190,7 @@ fastify.register(async (fastify) => {
                                     name: { type: 'string' }
                                 },
                                 required: ['name'],
-                                additionalProperties: False
+                                additionalProperties: false
                             }
                         }
                     ]
