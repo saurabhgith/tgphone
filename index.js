@@ -145,7 +145,7 @@ fastify.register(async (fastify) => {
         let markQueue = [];
         let responseStartTimestampTwilio = null;
 
-        const openAiWs = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01', {
+        const openAiWs = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview-2024-12-17', {
             headers: {
                 Authorization: `Bearer ${OPENAI_API_KEY}`,
                 "OpenAI-Beta": "realtime=v1"
@@ -176,7 +176,8 @@ fastify.register(async (fastify) => {
                                     phone: { type: 'string' },
                                     conversationHistory: { type: 'string' }
                                 },
-                                required: ['customerName', 'phone', 'conversationHistory']
+                                required: ['customerName', 'phone', 'conversationHistory'],
+                                additionalProperties: False
                             }
                         },
                         {
@@ -188,7 +189,8 @@ fastify.register(async (fastify) => {
                                 properties: {
                                     name: { type: 'string' }
                                 },
-                                required: ['name']
+                                required: ['name'],
+                                additionalProperties: False
                             }
                         }
                     ]
