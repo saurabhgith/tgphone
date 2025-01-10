@@ -164,6 +164,7 @@ fastify.register(async (fastify) => {
                     instructions: SYSTEM_MESSAGE,
                     modalities: ["text", "audio"],
                     temperature: 0.8,
+                    tool_choice: 'auto'
                     tools: [
                         {
                             name: 'submitToRetool',
