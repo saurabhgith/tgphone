@@ -73,6 +73,7 @@ Your primary responsibilities:
 - Explain how TGAIC can help solve their problems
 - Do NOT discuss any pricing information
 - When the caller shows interest, collect their name and phone and raise the interest.show event.
+- If the caller wants to talk to Saurabh or Rakesh, invoke the call forwarding tool.
 
 Keep responses professional, engaging, and focused on understanding and solving their operational challenges.`;
 
@@ -163,6 +164,32 @@ fastify.register(async (fastify) => {
                     instructions: SYSTEM_MESSAGE,
                     modalities: ["text", "audio"],
                     temperature: 0.8,
+                    tools: [
+                        {
+                            name: 'submitToRetool',
+                            description: 'Submits customer data to Retool for processing.',
+                            parameters: {
+                                type: 'object',
+                                properties: {
+                                    customerName: { type: 'string' },
+                                    phone: { type: 'string' },
+                                    conversationHistory: { type: 'string' }
+                                },
+                                required: ['customerName', 'phone', 'conversationHistory']
+                            }
+                        },
+                        {
+                            name: 'callForwarding',
+                            description: 'Forwards the call to a specific person based on the caller’s request.',
+                            parameters: {
+                                type: 'object',
+                                properties: {
+                                    name: { type: 'string' }
+                                },
+                                required: ['name']
+                            }
+                        }
+                    ]
                 }
             };
 
@@ -291,6 +318,23 @@ fastify.register(async (fastify) => {
                             }
                         });
                 }
+
+                // Check for call forwarding request
+                if (response.type === 'call.forward') {
+                    const name = response.name; // Extract name from the response
+                    const forwardingNumbers = {
+                        'Saurabh': '7063043893',
+                        'Rakesh': '6785221190'
+                    };
+
+                    if (forwardingNumbers[name]) {
+                        const callForwardingResponse = {
+                            type: 'tool.callForwarding',
+                            name: name
+                        };
+                        openAiWs.send(JSON.stringify(callForwardingResponse)); // Invoke the call forwarding tool
+                    }
+                }
             } catch (error) {
                 console.error('Error processing OpenAI message:', error, 'Raw message:', data);
             }
@@ -351,6 +395,19 @@ fastify.register(async (fastify) => {
         });
     });
 });
+
+// Handle the call forwarding tool invocation
+const handleCallForwarding = (name) => {
+    const forwardingNumbers = {
+        'Saurabh': '7063043893',
+        'Rakesh': '6785221190'
+    };
+
+    if (forwardingNumbers[name]) {
+        return `<Response><Dial>${forwardingNumbers[name]}</Dial></Response>`;
+    }
+    return null; // No forwarding needed
+};
 
 fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
     if (err) {
